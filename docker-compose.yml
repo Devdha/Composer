@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  auto-coder:
+    build: .
+    environment:
+      - MODEL: "deepseek-reasoner"
+      - LLM_API_KEY: "sk-proj-1234567890"
+    volumes:
+      - ./services:/app/services
+      - ./knowledge_base:/app/knowledge_base
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G

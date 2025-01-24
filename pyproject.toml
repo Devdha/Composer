@@ -1,0 +1,22 @@
+[project]
+name = "composer"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Donghun Ha",email = "donghun.dev@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "openai",
+    "pytest",
+    "pyyaml",
+    "subprocess",
+    "pathlib",
+    "openai"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
