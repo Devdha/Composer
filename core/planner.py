@@ -64,13 +64,10 @@ class Planner:
         """
 
         try:
-            response = self.client.generate_code(
-                prompt_type="planning",
-                messages=[
-                    {"role": "system", "content": system_msg},
-                    {"role": "user", "content": requirements}
-                ]
-            )
+            prompt_obj = Prompt()
+            prompt_obj.add_system_message(system_msg)
+            prompt_obj.add_user_message(requirements)
+            response = self.client.generate_code(prompt_obj)
             raw_plan = self._sanitize_response(response)
             return self._parse_plan(raw_plan)
         except Exception as e:
@@ -83,12 +80,41 @@ class Planner:
         - Optimal tech stack selection
         - Justification for each choice
         """
-        system_msg = """Autonomously select the optimal tech stack considering:
+        system_msg = """
+        Autonomously select the optimal tech stack considering:
         1. Project complexity
         2. Team skill level (assume senior engineers)
         3. Community support
         4. Cloud-native capabilities
-        Output YAML with justification for each choice.
+        
+        Generate a complete project plan in YAML format that MUST include these required fields:      
+        
+        project: <project_name>
+        directory_structure:
+          # Must be a dictionary where keys are folder names and values are lists of files
+          src:
+            - list of files in src
+          tests:
+            - list of files in tests
+          # Add other folders as needed
+        
+        components:
+          - name: <component_name>
+            description: <component_requirements>
+        
+        tech_stack:
+          - List of technologies and versions
+        
+        The directory_structure MUST be a dictionary where each key is a folder name and its value is a list of files.
+        Example directory_structure:
+          src: 
+            - __init__.py
+            - main.py
+          tests:
+            - test_main.py
+        
+        The plan must include ALL these fields as they are required by the build system.
+        Additional fields can be included but these are mandatory.
         Don't show markdown code block in the response. Just return the formatted data.
         """
 

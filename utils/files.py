@@ -16,14 +16,24 @@ class ProjectManager:
             }
         """
         path.mkdir(parents=True, exist_ok=True)
+
         for folder_name, files in structure.items():
-            folder_path = path / folder_name
+            folder_path = path / folder_name.rstrip("/")
             folder_path.mkdir(parents=True, exist_ok=True)
-            for filename in files:
-                file_path = folder_path / filename
-                if not file_path.exists():
-                    file_path.touch()
-        logger.info(f"Initialized project structure at {path}")
+
+            if isinstance(files, list):
+                for item in files:
+                    if isinstance(item, str):
+                        if item.endswith("/"):  # Nested folder
+                            nested_folder_path = folder_path / item.rstrip("/")
+                            nested_folder_path.mkdir(parents=True, exist_ok=True)
+                        else:  # File
+                            file_path = folder_path / item
+                            if not file_path.exists():
+                                file_path.touch()
+                    elif isinstance(item, dict):
+                        for nested_folder, nested_files in item.items():
+                            self.create(folder_path / nested_folder, nested_files)
 
     def write_code(self, project_path: Path, component_name: str, code: str, iteration: int) -> Path:
         """
@@ -38,6 +48,7 @@ class ProjectManager:
             f.write(code)
         
         logger.info(f"Wrote code for {component_name} (iteration {iteration}) to {main_file}")
+        logger.info(f"Code written: {code}")
         return comp_path
 
     def check_style(self, project_path: Path):

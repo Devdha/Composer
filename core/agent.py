@@ -47,6 +47,7 @@ class Composer:
 
     def build_service(self, requirements: str) -> Dict[str, Any]:
         """Full service build lifecycle"""
+        project_path = None
         try:
             self.logger.info("Starting requirement analysis and planning")
             tech_plan = self.planner.create_plan(
@@ -56,6 +57,14 @@ class Composer:
             self.logger.info("Initializing project")
             project_path = self._init_project(tech_plan)
             self.current_project = project_path
+            
+            # Save plan immediately after initialization
+            self._save_build_state(project_path, {
+                "timestamp": datetime.now().isoformat(),
+                "requirements": requirements,
+                "tech_plan": tech_plan,
+                "status": "in_progress"
+            })
             
             self.logger.info("Starting iterative development")
             for component in tech_plan["components"]:
@@ -84,17 +93,26 @@ class Composer:
             
         except Exception as e:
             self.logger.error(f"Error during service build: {str(e)}", exc_info=True)
-            self._cleanup_failed_project()
+            if project_path:
+                # Update build state with error instead of deleting
+                self._save_build_state(project_path, {
+                    "timestamp": datetime.now().isoformat(),
+                    "status": "failed",
+                    "error": str(e),
+                    "iterations": self.iteration_count,
+                    "error_history": self.error_history
+                })
             return {
                 "status": "error",
                 "error": str(e),
                 "iterations": self.iteration_count,
-                "errors": self.error_history
+                "errors": self.error_history,
+                "path": str(project_path) if project_path else None
             }
 
     def _init_project(self, tech_plan: Dict) -> Path:
         """Initialize project structure"""
-        project_name = tech_plan["project_name"]
+        project_name = tech_plan["project"]
         project_path = self.output_dir / project_name
         
         # Create directory structure
@@ -196,8 +214,13 @@ class Composer:
             
         return report
 
+    def _save_build_state(self, project_path: Path, state: Dict[str, Any]):
+        """Save build state to the project directory"""
+        build_state_path = project_path / "build_state.json"
+        with open(build_state_path, "w") as f:
+            json.dump(state, f, indent=2)
+
     def _cleanup_failed_project(self):
-        """Clean up partial project artifacts"""
+        """Method kept for compatibility but now just logs the failure"""
         if self.current_project and self.current_project.exists():
-            logger.warning(f"Cleaning up failed project: {self.current_project}")
-            shutil.rmtree(self.current_project)
+            logger.warning(f"Build failed for project: {self.current_project}")
