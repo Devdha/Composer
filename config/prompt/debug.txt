@@ -1,0 +1,22 @@
+Analyze this error and fix the code:
+
+Error Context:
+{ERROR_LOGS}
+
+Code Snippet:
+{CODE_SNIPPET}
+
+Project Tech Stack:
+{EXISTING_STACK}
+
+Requirements:
+1. Maintain original functionality
+2. Follow {SECURITY_STANDARD}
+3. Add error recovery mechanisms
+4. Reference similar solutions from knowledge base:
+{KNOWLEDGE_CONTEXT}
+
+Output format:
+```{LANGUAGE}
+# Fixed code here
+# Brief comment explaining fix
