@@ -1,90 +1,157 @@
+# core/planner.py
 import yaml
 from typing import Dict, List
-from openai import OpenAI
+from core.llm.prompt import Prompt
+from core.llm.deepseek_client import DeepSeekClient
 from utils.parser import parse_llm_output
-from config.settings import DEFAULT_TECH_STACK
-from core.llm_client import DeepSeekClient
+import logging
+import os
+
 
 class Planner:
-    def __init__(self, api_key: str):
-        self.client = DeepSeekClient(api_key)
+    """
+    Combines all planning functionalities:
+    - Analyzing ambiguity in requirements
+    - Generating architecture and tech plans in YAML
+    - Structuring plans with resolved dependencies
+    """
+
+    def __init__(self, llm_client: DeepSeekClient):
+        self.client = llm_client
+        self.logger = logging.getLogger(__name__)
         self.required_components = {
             'web_service': ['database', 'auth', 'api'],
             'cli_tool': ['argument_parsing', 'file_io']
         }
 
     def analyze_ambiguity(self, prompt: str) -> Dict:
+        """
+        Analyze technical requirements to identify ambiguities.
+        Returns JSON with 'needs_clarification' and a list of 'questions'.
+        """
         system_msg = """Analyze technical requirements. Identify:
         1. Unspecified components
         2. Missing technical specifications
         3. Potential contradictions
-        Output JSON format: {"needs_clarification": bool, "questions": List[str]}"""
-        
-        response = self.client.chat.completions.create(
-            model="gpt-4-turbo",
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"}
-        )
-        return parse_llm_output(response.choices[0].message.content)
-    
-    from .llm_client import DeepSeekClient
-from utils.parser import parse_yaml
+        Output JSON format: {"needs_clarification": bool, "questions": List[str]}
+        Don't show markdown code block in the response. Just return the formatted data.
+        """
 
-class Planner:
-    def __init__(self, api_key: str):
-        self.client = DeepSeekClient(api_key)
-    
-    def create_tech_plan(self, requirements: str) -> dict:
+        try:
+            prompt_obj = Prompt()
+            prompt_obj.add_system_message(system_msg)
+            prompt_obj.add_user_message(prompt)
+            response = self.client.generate_code(prompt_obj)
+            return parse_llm_output(response)
+        except Exception as e:
+            self.logger.error(f"Error analyzing ambiguity: {str(e)}", exc_info=True)
+            raise
+
+    def create_tech_plan(self, requirements: str) -> Dict:
+        """
+        Generate a high-level tech plan in YAML format.
+        The plan includes:
+        - Optimal tech stack
+        - Architecture design
+        - Potential risks
+        """
         system_msg = """As a senior architect, analyze requirements and:
         1. Choose optimal tech stack
         2. Design architecture
         3. Identify potential risks
-        Use YAML format with technical details"""
-        
-        response = self.client.generate(
-            prompt_type="planning",
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": requirements}
-            ]
-        )
-        return parse_yaml(response)
+        Use YAML format with technical details.
+        Don't show markdown code block in the response. Just return the formatted data.
+        """
 
-    def create_plan(self, prompt: str) -> Dict:
-      system_msg = """Autonomously select the optimal tech stack considering:
-      1. Project complexity
-      2. Team skill level (assume senior engineers)
-      3. Community support
-      4. Cloud-native capabilities
-      Output YAML with justification for each choice"""
-      
-      response = self.client.chat.completions.create(
-          model="gpt-4-turbo",
-          messages=[
-              {"role": "system", "content": system_msg},
-              {"role": "user", "content": prompt}
-          ],
-          temperature=0.7  # Higher creativity
-      )
-      return self._parse_plan(response.choices[0].message.content)
-
-    def _structure_plan(self, raw_plan: str) -> Dict:
         try:
+            response = self.client.generate_code(
+                prompt_type="planning",
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": requirements}
+                ]
+            )
+            raw_plan = self._sanitize_response(response)
+            return self._parse_plan(raw_plan)
+        except Exception as e:
+            self.logger.error(f"Error creating tech plan: {str(e)}", exc_info=True)
+            raise
+
+    def create_plan(self, requirements: str) -> Dict:
+        """
+        Generate a complete project plan in YAML format, including:
+        - Optimal tech stack selection
+        - Justification for each choice
+        """
+        system_msg = """Autonomously select the optimal tech stack considering:
+        1. Project complexity
+        2. Team skill level (assume senior engineers)
+        3. Community support
+        4. Cloud-native capabilities
+        Output YAML with justification for each choice.
+        Don't show markdown code block in the response. Just return the formatted data.
+        """
+
+        try:
+            prompt_obj = Prompt()
+            prompt_obj.add_system_message(system_msg)
+            prompt_obj.add_user_message(requirements)
+            response = self.client.generate_code(prompt_obj)
+            self.logger.info(f"Generated plan: {response}")
+            
+            sanitized_response = self._sanitize_response(response)
+            plan = self._parse_plan(sanitized_response)
+            
+            self._save_plan_to_file(plan, "latest_plan.yaml")
+            self.logger.info("Generated Plan:\n" + yaml.dump(plan, default_flow_style=False))
+            
+            return plan
+        except Exception as e:
+            self.logger.error(f"Error creating plan: {str(e)}", exc_info=True)
+            raise
+
+    def _sanitize_response(self, response: str) -> str:
+        """
+        Sanitize the response to ensure it is valid YAML.
+        """
+        sanitized = response.replace("```yaml", "").replace("```", "").strip()
+        return sanitized
+
+    def _parse_plan(self, raw_plan: str) -> Dict:
+        """
+        Parse a raw YAML plan text into a Python dictionary and apply additional processing.
+        """
+        try:
+            lines = raw_plan.split("\n")
+            lines = [line for line in lines if not line.strip().startswith("```yaml") and not line.strip().startswith("```") and not line.strip().startswith("---")]
+            raw_plan = "\n".join(lines)
             plan = yaml.safe_load(raw_plan)
-            plan['metadata']['version'] = "1.0.0"
-            plan['dependencies'] = self._resolve_dependencies(plan['technology_stack'])
+            if "metadata" not in plan:
+                plan["metadata"] = {}
+            plan["metadata"]["version"] = "1.0.0"
+
+            plan["dependencies"] = self._resolve_dependencies(plan.get("technology_stack", []))
             return plan
         except yaml.YAMLError as e:
+            self.logger.error(f"YAML parsing error: {str(e)}", exc_info=True)
             raise ValueError(f"Invalid plan format: {str(e)}")
 
     def _resolve_dependencies(self, tech_stack: List[str]) -> Dict:
-        # Integrated with actual package databases
+        """
+        Resolve dependencies dynamically for the given tech stack.
+        """
         return {
-            'python': [
-                pypi_mirror.get_latest_version(tech)
-                for tech in tech_stack if tech in pypi_mirror
-            ]
+            "resolved_dependencies": [f"{tech}-1.0.0" for tech in tech_stack]
         }
+
+    def _save_plan_to_file(self, plan: Dict, filename: str):
+        """
+        Save the plan to a YAML file.
+        """
+        try:
+            with open(filename, 'w') as file:
+                yaml.dump(plan, file, default_flow_style=False)
+            self.logger.info(f"Plan saved to {filename}")
+        except IOError as e:
+            self.logger.error(f"Failed to save plan to file: {str(e)}", exc_info=True)
+            raise

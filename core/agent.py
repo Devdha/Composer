@@ -1,16 +1,20 @@
 import json
 import yaml
 import shutil
+import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime
+
 from utils.files import ProjectManager
 from utils.validation import SecurityValidator
 from utils.test_runner import TestRunner
-from core.planner import ArchitecturePlanner
+from core.planner import Planner
 from core.coder import CodeGenerator
 from core.debugger import DebugEngine
 from core.knowledge import KnowledgeBase
+
+logger = logging.getLogger(__name__)
 
 class Composer:
     def __init__(
@@ -25,15 +29,16 @@ class Composer:
         self.security = SecurityValidator()
         self.test_runner = TestRunner()
         self.knowledge = KnowledgeBase()
+        self.logger = logging.getLogger(__name__)
         
         # Load configuration
         with open(config_path) as f:
             self.config = yaml.safe_load(f)
         
         # Initialize components
-        self.planner = ArchitecturePlanner(llm_client)
-        self.coder = CodeGenerator(llm_client)
-        self.debugger = DebugEngine(llm_client)
+        self.planner = Planner(self.llm)
+        self.coder = CodeGenerator(self.llm)
+        self.debugger = DebugEngine(self.llm)
         
         # State tracking
         self.current_project: Optional[Path] = None
@@ -43,17 +48,16 @@ class Composer:
     def build_service(self, requirements: str) -> Dict[str, Any]:
         """Full service build lifecycle"""
         try:
-            # Phase 1: Requirement Analysis & Planning
+            self.logger.info("Starting requirement analysis and planning")
             tech_plan = self.planner.create_plan(
-                requirements,
-                constraints=self.config["tech_constraints"]
+                requirements
             )
             
-            # Phase 2: Project Initialization
+            self.logger.info("Initializing project")
             project_path = self._init_project(tech_plan)
             self.current_project = project_path
             
-            # Phase 3: Iterative Development
+            self.logger.info("Starting iterative development")
             for component in tech_plan["components"]:
                 self._execute_development_step(
                     component=component,
@@ -61,10 +65,10 @@ class Composer:
                     project_path=project_path
                 )
             
-            # Phase 4: Final Validation
+            self.logger.info("Running final validation")
             final_result = self._final_validation(project_path)
             
-            # Phase 5: Knowledge Base Update
+            self.logger.info("Updating knowledge base")
             self.knowledge.store_project(
                 project_path=project_path,
                 plan=tech_plan,
@@ -79,6 +83,7 @@ class Composer:
             }
             
         except Exception as e:
+            self.logger.error(f"Error during service build: {str(e)}", exc_info=True)
             self._cleanup_failed_project()
             return {
                 "status": "error",
@@ -125,6 +130,7 @@ class Composer:
             # Security validation
             security_report = self.security.validate(code)
             if not security_report["passed"]:
+                # Attempt to fix security issues
                 code = self.debugger.fix_security_issues(
                     code,
                     issues=security_report["issues"],
@@ -146,12 +152,13 @@ class Composer:
             )
             
             if test_result["passed"]:
+                # If tests passed, store success in knowledge
                 self.knowledge.store_success(
                     component=component["name"],
                     code=code,
                     context=tech_stack
                 )
-                return
+                return  # Done with this component
                 
             # Handle test failure
             self.error_history.append({
@@ -170,7 +177,7 @@ class Composer:
             )
             
         raise RuntimeError(
-            f"Failed to implement {component['name']} after {max_retries} attempts"
+            f"Failed to implement '{component['name']}' after {max_retries} attempts"
         )
 
     def _final_validation(self, project_path: Path) -> Dict:

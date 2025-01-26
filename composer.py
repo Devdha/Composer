@@ -64,7 +64,7 @@ def main():
             logger.info(f"Service built successfully at: {result['path']}")
         else:
             logger.error("Failed to build service")
-            logger.debug(f"Error details: {result.get('errors', 'No details')}")
+            logger.error(f"Error details: {result.get('errors', 'No details')}")
             exit(1)
             
     except Exception as e:

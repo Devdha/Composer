@@ -11,9 +11,9 @@ dependencies = [
     "openai",
     "pytest",
     "pyyaml",
-    "subprocess",
     "pathlib",
-    "openai"
+    "python-dotenv (>=1.0.1,<2.0.0)",
+    "requests (>=2.32.3,<3.0.0)"
 ]
 
 

@@ -1,0 +1,131 @@
+dependencies:
+  resolved_dependencies: []
+metadata:
+  version: 1.0.0
+project: naver_reservation_automation_bot
+tech_stack:
+  automation_framework:
+    justification: '- **Project Complexity**: Supports headless browsers, multi-page
+      scenarios, and anti-bot detection bypass strategies.
+
+      - **Team Skill Level**: Senior engineers benefit from Playwright''s modern API
+      and cross-browser compatibility.
+
+      - **Community Support**: Backed by Microsoft and growing adoption for complex
+      automation use cases.
+
+      - **Cloud-Native**: Lightweight and compatible with Docker/Kubernetes for scalable
+      deployment.
+
+      '
+    name: Playwright
+  backend_framework:
+    justification: '- **Project Complexity**: Async support for concurrent reservation
+      tasks and real-time status updates.
+
+      - **Team Skill Level**: Enables clean architecture with Pydantic models and
+      dependency injection.
+
+      - **Community Support**: Rapidly growing ecosystem with 20k+ GitHub stars and
+      enterprise adoption.
+
+      - **Cloud-Native**: Native compatibility with ASGI servers (Uvicorn) and cloud
+      load balancers.
+
+      '
+    name: FastAPI
+  cicd:
+    justification: '- **Project Complexity**: Automated testing of reservation flows
+      using parallel jobs.
+
+      - **Team Skill Level**: YAML-based pipelines align with infrastructure-as-code
+      practices.
+
+      - **Community Support**: Marketplace integrations for security scanning and
+      deployment.
+
+      - **Cloud-Native**: Triggers cloud deployments via AWS SAM or Kubernetes operators.
+
+      '
+    name: GitHub Actions
+  database:
+    justification: '- **Project Complexity**: ACID compliance ensures transactional
+      integrity for reservation slots.
+
+      - **Team Skill Level**: Seniors can optimize complex queries and JSONB storage
+      for dynamic data.
+
+      - **Community Support**: Mature ecosystem with tools like pgAdmin and TimescaleDB
+      for analytics.
+
+      - **Cloud-Native**: Managed services (AWS RDS, Azure PostgreSQL) simplify cloud
+      deployment.
+
+      '
+    name: PostgreSQL
+  logging:
+    justification: '- **Project Complexity**: Aggregates distributed logs for debugging
+      reservation failures.
+
+      - **Team Skill Level**: Enables complex log parsing and anomaly detection rules.
+
+      - **Community Support**: Widely adopted with plugins for cloud log ingestion.
+
+      - **Cloud-Native**: Elastic Cloud provides managed SaaS/self-hosted options.
+
+      '
+    name: ELK Stack (Elasticsearch, Logstash, Kibana)
+  monitoring:
+    justification: '- **Project Complexity**: Tracks bot success rates, latency, and
+      anti-bot trigger events.
+
+      - **Team Skill Level**: Seniors can write custom exporters for Naver-specific
+      metrics.
+
+      - **Community Support**: Kubernetes-native monitoring with pre-built dashboards.
+
+      - **Cloud-Native**: Scalable time-series storage and cloud exporter integrations.
+
+      '
+    name: Prometheus + Grafana
+  orchestration:
+    justification: '- **Project Complexity**: Manages autoscaling for traffic spikes
+      during high-demand reservation periods.
+
+      - **Team Skill Level**: Seniors can implement GitOps workflows with ArgoCD for
+      CI/CD.
+
+      - **Community Support**: CNCF-backed standard with robust tooling for monitoring
+      and security.
+
+      - **Cloud-Native**: Native integration with AWS services (IAM, VPC) for enterprise-grade
+      deployment.
+
+      '
+    name: Kubernetes (AWS EKS)
+  programming_language:
+    justification: '- **Project Complexity**: Python''s rich ecosystem (e.g., Selenium,
+      Playwright) simplifies web automation and handling dynamic content.
+
+      - **Team Skill Level**: Senior engineers can leverage Python''s readability
+      and advanced libraries for rapid development.
+
+      - **Community Support**: Extensive documentation and active community for troubleshooting
+      automation challenges.
+
+      - **Cloud-Native**: Integrates seamlessly with serverless frameworks (AWS Lambda,
+      GCP Functions) and containerization.
+
+      '
+    name: Python
+  security:
+    justification: '- **Project Complexity**: Secures API keys and Naver account credentials
+      with dynamic secrets.
+
+      - **Team Skill Level**: Seniors can implement RBAC and audit logging for compliance.
+
+      - **Community Support**: Enterprise-grade secrets management with Kubernetes
+      integration.
+
+      - **Cloud-Native**: Native secrets engine for AWS IAM, Azure AD, and GCP.'
+    name: Vault (HashiCorp) + Python Cryptography
